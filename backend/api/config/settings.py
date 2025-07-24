@@ -6,6 +6,11 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     UPLOAD_DIR: str = "uploads"
     
+    
+    COURSE_COLLECTION: str = "course_vectors"
+    COURSE_INDEX:      str = "course_index"
+
+
     class Config:
         env_file = ".env"
 

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "fastapi-dev": "cd backend && poetry install && python3 -B -m uvicorn api.index:app --reload",
+    "fastapi-dev": "cd backend && poetry install && poetry run uvicorn api.index:app --reload",
     "dev": "concurrently \"npm run next-dev\" \"npm run fastapi-dev\"",
     "next-dev": "next dev --turbopack",
     "build": "next build",
@@ -44,6 +44,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.1.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

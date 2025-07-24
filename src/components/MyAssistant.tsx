@@ -38,7 +38,7 @@ export function MyAssistant({ chatId }: MyAssistantProps) {
   const { incrementRequests } = useRequestStats();
 
   const runtime = useChatRuntime({
-    api: `${API_URL}/api/chat`,
+    api: `${API_URL}/api/virtual-ta/chat`,
     headers: {
       'X-Chat-ID': chatId || '',
       'Authorization': `Bearer ${token}`

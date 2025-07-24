@@ -4,83 +4,97 @@ from pymongo.operations import SearchIndexModel
 from dotenv import load_dotenv
 from ..utils.logger import logger
 
+
+# Load environment variables
 load_dotenv()
 
+
 class MongoDB:
-    client: MongoClient = None
-    db = None
+   """
+   Singleton-style MongoDB connection manager.
+   Ensures the combined_vectors collection and its search index exist.
+   """
+   client: MongoClient = None
+   db = None
 
-    @classmethod
-    def connect_db(cls):
-        try:
-            mongodb_url = os.getenv("MONGODB_URL")
-            database_name = os.getenv("DATABASE_NAME")
-            
-            cls.client = MongoClient(mongodb_url)
-            cls.db = cls.client[database_name]
-            
-            # Create vector index if it doesn't exist
-            cls._ensure_evaluations_vector_index()
-            logger.info("Mongo Check Complete")
-        except Exception as e:
-            logger.error(f"Failed to connect to MongoDB: {e}")
-            raise
 
-    @classmethod
-    def _ensure_evaluations_vector_index(cls):
-        """Ensure vector index exists for similarity search"""
-        try:
-            collection = cls.db.evaluations_vectors
-            
-            # Create collection if it doesn't exist
-            if "evaluations_vectors" not in cls.db.list_collection_names():
-                cls.db.create_collection("evaluations_vectors")
-                logger.info("Created evaluations_vectors collection")
-            
-            # Check if index exists
-            indexes = list(collection.list_search_indexes())
-            index_exists = any(index.get("name") == "evaluations_index" for index in indexes)
-            
-            if not index_exists:
-                # Create vector index using SearchIndexModel
-                search_index_model = SearchIndexModel(
-                    definition={
-                        "fields": [
-                            {
-                                "type": "vector",
-                                "numDimensions": 3072,
-                                "path": "embedding",
-                                "similarity": "cosine"
-                            },
-                            {
-                                "path": "source",
-                                "type": "filter"
-                            }
-                        ]
-                    },
-                    name="evaluations_index",
-                    type="vectorSearch"
-                )
-                
-                result = collection.create_search_index(model=search_index_model)
-                logger.info(f"Created vector index in MongoDB: {result}")
-            else:
-                logger.info("Vector index 'evaluations_index' already exists")
+   @classmethod
+   def connect_db(cls):
+       """
+       Connect to MongoDB using URI and database name from environment.
+       Ensure the combined vector collection and index are created.
+       """
+       mongodb_url   = os.getenv("MONGODB_URL")
+       database_name = os.getenv("DATABASE_NAME")
 
-        except Exception as e:
-            # If the error is about index already existing, log it as info instead of error
-            if "Index already exists" in str(e) or "IndexAlreadyExists" in str(e):
-                logger.info(f"Vector index already exists: {e}")
-            else:
-                logger.error(f"Failed to create vector index: {e}")
-                raise
 
-    @classmethod
-    def close_db(cls):
-        if cls.client:
-            cls.client.close()
-            logger.info("Closed MongoDB connection")
+       cls.client = MongoClient(mongodb_url, tls=True, tlsAllowInvalidCertificates=True)
+       cls.db     = cls.client[database_name]
 
-    @classmethod
-    def get_db(cls):
-        return cls.db 
+
+       # Only one combined collection/index
+       coll_name = os.getenv("VECTOR_COLLECTION", "combined_vectors")
+       idx_name  = os.getenv("VECTOR_INDEX",      "combined_index")
+       cls._ensure_vector_index(coll_name, idx_name)
+
+
+       logger.info("MongoDB connected; combined vector index ensured.")
+
+
+   @classmethod
+   def _ensure_vector_index(cls, collection_name: str, index_name: str):
+       """
+       Create the collection if missing, and then create a vector-search index on
+       embedding + metadata.source if it doesn't exist.
+       """
+       try:
+           if collection_name not in cls.db.list_collection_names():
+               cls.db.create_collection(collection_name)
+               logger.info(f"Created collection '{collection_name}'")
+
+
+           coll = cls.db[collection_name]
+           existing = [idx.get("name") for idx in coll.list_search_indexes()]
+
+
+           if index_name not in existing:
+               model = SearchIndexModel(
+                   definition={
+                       "fields": [
+                           {"type": "vector",      "numDimensions": 3072, "path": "embedding",          "similarity": "cosine"},
+                           {"path":"metadata.source", "type":"filter"}
+                       ]
+                   },
+                   name=index_name,
+                   type="vectorSearch"
+               )
+               coll.create_search_index(model=model)
+               logger.info(f"Created search index '{index_name}' on '{collection_name}'")
+           else:
+               logger.info(f"Search index '{index_name}' already exists on '{collection_name}'")
+
+
+       except Exception as e:
+           # suppress benign "already exists" errors
+           msg = str(e).lower()
+           if "already exists" in msg:
+               logger.info(f"Index '{index_name}' already exists (suppressed): {e}")
+           else:
+               logger.error(f"Failed to ensure index '{index_name}' on '{collection_name}': {e}")
+               raise
+
+
+   @classmethod
+   def get_db(cls):
+       """Return the active database connection."""
+       return cls.db
+
+
+   @classmethod
+   def close_db(cls):
+       """Close the MongoDB client connection."""
+       if cls.client:
+           cls.client.close()
+           logger.info("Closed MongoDB connection")
+
+
