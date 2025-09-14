@@ -40,10 +40,10 @@ const LearnToUseDialog: FC<{
       <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
-            How to Use Comment Sense
+            How to Use Virtual Teaching Assisstant
           </DialogTitle>
           <p className="text-center text-muted-foreground mt-2">
-            Your AI-powered assistant for understanding and improving course evaluations
+            Your AI-powered assistant for understanding and improving your learning experience
           </p>
         </DialogHeader>
 
@@ -68,9 +68,9 @@ const LearnToUseDialog: FC<{
               >
                 <MessageSquareText size={36} className="text-primary" />
               </motion.div>
-              <h3 className="text-xl font-semibold mb-2">Welcome to Comment Sense</h3>
+              <h3 className="text-xl font-semibold mb-2">Welcome to Virtual Teaching Assisstant</h3>
               <p>
-                Comment Sense helps professors understand student feedback through AI-powered analysis of course evaluations.
+                Virtual Teaching Assisstant helps you understand your course materials through AI-powered analysis of your course book and notes.
               </p>
             </div>
             
@@ -113,7 +113,7 @@ const LearnToUseDialog: FC<{
               <div className="bg-primary/10 p-3">
                 <h3 className="font-medium flex items-center">
                   <FileUp className="mr-2 h-5 w-5" />
-                  Uploading Course Evaluations
+                  Uploading Course Book and Notes
                 </h3>
               </div>
               <div className="p-4 space-y-4">
@@ -134,7 +134,7 @@ const LearnToUseDialog: FC<{
                     <span className="text-xs font-medium">2</span>
                   </div>
                   <div>
-                    <p className="font-medium">Select your evaluation files</p>
+                    <p className="font-medium">Select your files</p>
                     <p className="text-sm text-muted-foreground">
                       Supported formats include PDF, CSV, Excel, and plain text files
                     </p>
@@ -146,9 +146,9 @@ const LearnToUseDialog: FC<{
                     <span className="text-xs font-medium">3</span>
                   </div>
                   <div>
-                    <p className="font-medium">Ask questions about your evaluations</p>
+                    <p className="font-medium">Ask questions about your course</p>
                     <p className="text-sm text-muted-foreground">
-                      Use the chat interface to inquire about specific aspects of your course feedback
+                      Use the chat interface to inquire about specific aspects of your course material
                     </p>
                   </div>
                 </div>
@@ -181,12 +181,12 @@ const LearnToUseDialog: FC<{
               <div className="bg-primary/10 p-3">
                 <h3 className="font-medium flex items-center">
                   <Search className="mr-2 h-5 w-5" />
-                  Asking Questions About Your Evaluations
+                  Asking Questions About Your Course
                 </h3>
               </div>
               <div className="p-4">
                 <p className="mb-4">
-                  After uploading, you can ask specific questions about your evaluations:
+                  After uploading, you can ask specific questions about your material:
                 </p>
                 
                 <div className="space-y-3 mb-4">
@@ -244,7 +244,7 @@ const LearnToUseDialog: FC<{
               </div>
               <div className="p-4">
                 <p className="mb-4">
-                  Comment Sense automatically identifies areas for improvement and provides actionable strategies:
+                  Virtual TA automatically identifies areas for improvement and provides actionable strategies:
                 </p>
                 
                 <div className="space-y-4">

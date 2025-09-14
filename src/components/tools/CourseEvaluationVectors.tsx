@@ -69,7 +69,7 @@ CourseEvaluationVectorsToolResult
             {result !== undefined && (
               <div className="border-t border-dashed px-4 pt-2">
                 <div className="flex justify-between items-center mb-3">
-                  <p className="font-semibold">Evaluation Contexts:</p>
+                  <p className="font-semibold">Course Contexts:</p>
                   {parsedResult?.contexts && (
                     <span className="text-sm text-gray-500">
                       {parsedResult.contexts.length} {parsedResult.contexts.length === 1 ? 'result' : 'results'}

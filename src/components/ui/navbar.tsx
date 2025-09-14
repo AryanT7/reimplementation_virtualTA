@@ -105,7 +105,7 @@ export function Navbar() {
     <div className="border-b bg-white">
       <div className="flex h-16 items-center px-4 md:px-6">
         <div className="flex items-center gap-2">
-          <span className="text-xl font-semibold text-[#CC0000]">Comment Sense</span>
+          <span className="text-xl font-semibold text-[#CC0000]">Virtual Teaching Assistant</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
           <div className="hidden md:flex items-center gap-2">

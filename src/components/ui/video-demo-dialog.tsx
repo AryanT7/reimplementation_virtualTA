@@ -20,7 +20,7 @@ const VideoDemoDialog: React.FC<VideoDemoDialogProps> = ({ open, onOpenChange })
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
-            Comment Sense Demo
+            Virtual TA Demo
           </DialogTitle>
         </DialogHeader>
         
@@ -35,7 +35,7 @@ const VideoDemoDialog: React.FC<VideoDemoDialogProps> = ({ open, onOpenChange })
         </div>
         
         <div className="mt-4 text-center text-sm text-muted-foreground">
-          Watch this quick demo to see how Comment Sense can help you analyze course evaluations
+          Watch this quick demo to see how Virtual TA can help you deepen course concepts
         </div>
       </DialogContent>
     </Dialog>

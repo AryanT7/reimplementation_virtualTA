@@ -224,8 +224,8 @@ const formData = new FormData();
 
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Course Evaluations</h2>
-        <p className="text-sm text-gray-500">Manage your evaluation files</p>
+        <h2 className="text-lg font-semibold text-gray-900">Virtual Teaching Assisstant</h2>
+        <p className="text-sm text-gray-500">Manage your files</p>
       </div>
 
       {/* File List */}
@@ -254,7 +254,7 @@ const formData = new FormData();
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Evaluation File</AlertDialogTitle>
+                      <AlertDialogTitle>Delete File</AlertDialogTitle>
                       <AlertDialogDescription>
                         Are you sure you want to delete "{file.name}"? This action cannot be undone.
                       </AlertDialogDescription>
@@ -283,7 +283,7 @@ const formData = new FormData();
             {/* Progress Card Header */}
             <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h3 className="text-sm font-medium text-gray-700">Processing Evaluation</h3>
+                <h3 className="text-sm font-medium text-gray-700">Processing Material</h3>
                 <span className="text-sm font-semibold text-[#CC0000]">{Math.round(uploadProgress)}%</span>
               </div>
             </div>
@@ -364,7 +364,7 @@ const formData = new FormData();
           ) : (
             <>
               <Plus className="h-4 w-4 mr-2" />
-              Add Evaluation
+              Add Query
             </>
           )}
         </Button>

@@ -123,5 +123,5 @@ class TextbookLoader:
 
 if __name__ == "__main__":
     loader = TextbookLoader()
-    path = "api/utils/tapdf/ECE506_textbook.pdf"
-    loader.load_textbook(path, "ECE506_textbook.pdf")
+    path = "api/utils/tapdf/saasbook.pdf"
+    loader.load_textbook(path, "saasbook.pdf")

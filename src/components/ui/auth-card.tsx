@@ -221,7 +221,7 @@ export function AuthCard() {
                           <InfoCircledIcon className="h-4 w-4 text-gray-500 cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs p-3">
-                          <p>The data we collect is only used to improve the responses of the bot. We cannot access your uploaded Course Evaluations. Opting in for logging will only show us the model's responses.</p>
+                          <p>The data we collect is only used to improve the responses of the bot. Opting in for logging will only show us the model's responses.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>

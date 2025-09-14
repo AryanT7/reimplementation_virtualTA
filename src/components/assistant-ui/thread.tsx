@@ -381,7 +381,7 @@ const Composer: FC<{ onSend?: () => void }> = ({ onSend }) => {
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  When enabled, only data regarding your question and the model's final response will be logged. Your uploaded course evaluations cannot be seen by us. Logging helps us understand how the model is doing and improve on its performance.
+                  When enabled, only data regarding your question and the model's final response will be logged. Logging helps us understand how the model is doing and improve on its performance.
                 </p>
               </div>
             )}
@@ -467,9 +467,9 @@ const ThreadWelcome: FC = () => {
         
         {/* Title and description */}
         <div className="text-center space-y-2 max-w-md">
-          <h3 className="text-xl font-semibold">Course Evaluation Assistant</h3>
+          <h3 className="text-xl font-semibold">Virtual Teaching Assistant</h3>
           <p className="text-sm text-muted-foreground">
-            Upload evaluations, get insights, and discover strategies to enhance your teaching.
+            Ask questions, get insights based on relevant course curriculum.
           </p>
         </div>
         
@@ -492,7 +492,7 @@ const ThreadWelcome: FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              Upload Course Evaluations
+              Upload your query
             </>
           )}
         </Button>

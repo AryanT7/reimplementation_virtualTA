@@ -24,8 +24,8 @@ class MongoDB:
        Connect to MongoDB using URI and database name from environment.
        Ensure the combined vector collection and index are created.
        """
-       mongodb_url   = os.getenv("MONGODB_URL")
-       database_name = os.getenv("DATABASE_NAME")
+       mongodb_url   = os.getenv("MONGODB_URL").strip()
+       database_name = os.getenv("DATABASE_NAME").strip()
 
 
        cls.client = MongoClient(mongodb_url, tls=True, tlsAllowInvalidCertificates=True)

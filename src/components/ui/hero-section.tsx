@@ -15,7 +15,7 @@ export function HeroSection() {
         {/* Main heading with 3D effect */}
         <div className="relative">
           <ThreeDText 
-            text="Comment Sense" 
+            text="Virtual TA" 
             className="text-6xl md:text-7xl lg:text-8xl tracking-tight"
             color="from-red-400 to-red-300"
             shadowColor="rgba(204, 0, 0, 0.2)"
@@ -26,7 +26,7 @@ export function HeroSection() {
               NC State University
             </h2>
             <p className="mt-2 text-lg text-muted-foreground sm:text-xl">
-              The intelligent platform for course evaluation analysis.
+              The intelligent platform for on-demand academic guidance.
               Gain valuable insights and make informed decisions with our AI-powered tools.
             </p>
           </div>
@@ -70,7 +70,7 @@ export function HeroSection() {
               </svg>
             </div>
             <h3 className="font-medium">Course Insights</h3>
-            <p className="text-sm text-muted-foreground">Analyze course evaluations with AI-powered tools</p>
+            <p className="text-sm text-muted-foreground">Analyze your course material with AI-powered tools</p>
           </div>
           <div className="rounded-lg border bg-card p-4 shadow-sm">
             <div className="mb-2 rounded-full bg-red-100 p-2 w-fit dark:bg-red-900/30">
@@ -90,7 +90,7 @@ export function HeroSection() {
               </svg>
             </div>
             <h3 className="font-medium">Data Visualization</h3>
-            <p className="text-sm text-muted-foreground">View trends and patterns in course evaluations</p>
+            <p className="text-sm text-muted-foreground">View trends and patterns in your curriculum</p>
           </div>
         </div>
       </div>
