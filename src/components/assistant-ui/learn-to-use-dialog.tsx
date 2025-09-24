@@ -40,7 +40,7 @@ const LearnToUseDialog: FC<{
       <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
-            How to Use Virtual Teaching Assisstant
+            How to Use Virtual Teaching Assistant
           </DialogTitle>
           <p className="text-center text-muted-foreground mt-2">
             Your AI-powered assistant for understanding and improving your learning experience
@@ -68,9 +68,9 @@ const LearnToUseDialog: FC<{
               >
                 <MessageSquareText size={36} className="text-primary" />
               </motion.div>
-              <h3 className="text-xl font-semibold mb-2">Welcome to Virtual Teaching Assisstant</h3>
+              <h3 className="text-xl font-semibold mb-2">Welcome to Virtual Teaching Assistant</h3>
               <p>
-                Virtual Teaching Assisstant helps you understand your course materials through AI-powered analysis of your course book and notes.
+                Virtual Teaching Assistant helps you understand your course materials through AI-powered analysis of your course book and notes.
               </p>
             </div>
             
