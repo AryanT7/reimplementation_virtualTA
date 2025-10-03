@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function getApiUrl() {
   const apiUrl = process.env.NODE_ENV === "production" 
-    ? 'https://comment-sense-1.onrender.com'
+    ? 'http://3.91.189.197:8000'
     : 'http://localhost:8000'
     
 
