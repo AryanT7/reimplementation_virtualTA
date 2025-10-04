@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from .tools import tools
 from .state import AgentState
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langgraph.checkpoint.memory import MemorySaver
 import os
 import sys
 import importlib
@@ -185,7 +186,9 @@ workflow.add_conditional_edges(
    ["tools", END],
 )
 workflow.add_edge("tools", "agent")
-ta_ui_graph = workflow.compile()
+# ta_ui_graph = workflow.compile()
+memory = MemorySaver()
+ta_ui_graph = workflow.compile(checkpointer=memory)
 
 
 

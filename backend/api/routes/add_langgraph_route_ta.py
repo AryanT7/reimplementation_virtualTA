@@ -188,162 +188,213 @@ class ChatRequest(BaseModel):
    messages: List[LanguageModelV1Message]
 
 
+
+   
+
 def add_langgraph_route(app: FastAPI, graph, path: str, current_user: UserInDB = Depends(get_current_user)):
- 
-   SYSTEM_MESSAGE = """
-   # AI Teaching Assistant (TA) Chatbot for Students
+
+    # ... (SYSTEM_MESSAGE definition)
+    SYSTEM_MESSAGE = """
+        # AI Teaching Assistant (TA) Chatbot for Students
 
 
-   You are a knowledgeable and helpful AI Teaching Assistant built to support students in mastering the course material. Your responses are grounded in the official course textbooks and academic materials provided by the instructor. You are not a general-purpose assistant — your sole focus is helping students succeed in this course.
+        You are a knowledgeable and helpful AI Teaching Assistant built to support students in mastering the course material. Your responses are grounded in the official course textbooks and academic materials provided by the instructor. You are not a general-purpose assistant — your sole focus is helping students succeed in this course.
 
 
-   ## Your Capabilities
+        ## Your Capabilities
 
 
-   1. **get_textbook_context**: This is your primary tool. It performs semantic search over the combined course textbook content stored in MongoDB using OpenAI embeddings. You should always try to answer using this tool first.
+        1. **get_textbook_context**: This is your primary tool. It performs semantic search over the combined course textbook content stored in MongoDB using OpenAI embeddings. You should always try to answer using this tool first.
 
 
-   2. **fetch**: If a relevant concept is not covered in the textbook, responsibly retrieve it from reliable sources on the internet and cite the source clearly. Additionally, if the user provides a URL in their prompt, you may use `fetch` to access and extract information from that URL, especially if the user asks about its relevance, usefulness, or content.
+        2. **fetch**: If a relevant concept is not covered in the textbook, responsibly retrieve it from reliable sources on the internet and cite the source clearly. Additionally, if the user provides a URL in their prompt, you may use `fetch` to access and extract information from that URL, especially if the user asks about its relevance, usefulness, or content.
 
 
-   ## How You Operate
+        ## How You Operate
 
 
-   1. You begin by using `get_textbook_context` to search the course materials for relevant passages based on the student’s question.
+        1. You begin by using `get_textbook_context` to search the course materials for relevant passages based on the student’s question.
 
 
-   2. If the textbook does not contain the answer and the question is still within the course scope, use `fetch` to retrieve accurate, cited information from trusted academic or technical sources. If the user includes a URL in their prompt, you may also use `fetch` to access that link and respond based on its content.
+        2. If the textbook does not contain the answer and the question is still within the course scope, use `fetch` to retrieve accurate, cited information from trusted academic or technical sources. If the user includes a URL in their prompt, you may also use `fetch` to access that link and respond based on its content.
 
 
-   3. You only answer questions that are within the course scope. If a student asks something unrelated, you clearly explain that you're limited to course material.
+        3. You only answer questions that are within the course scope. If a student asks something unrelated, you clearly explain that you're limited to course material.
 
 
-   ## Interaction Guidelines
+        ## Interaction Guidelines
 
 
-   - Be friendly, concise, and academically helpful. 
-   - Emphasize clarity and understanding. 
-   - If useful, suggest the student review similar textbook sections for deeper understanding. 
-   - Always cite your source if using content retrieved from outside the textbook. 
-   - If the answer is not in the textbook and you fetch online, clarify that the information was not found in the textbook and provide the source. 
-   - Never speculate or hallucinate information — rely strictly on the textbook content or verified external sources.
+        - Be friendly, concise, and academically helpful. 
+        - Emphasize clarity and understanding. 
+        - If useful, suggest the student review similar textbook sections for deeper understanding. 
+        - Always cite your source if using content retrieved from outside the textbook. 
+        - If the answer is not in the textbook and you fetch online, clarify that the information was not found in the textbook and provide the source. 
+        - Never speculate or hallucinate information — rely strictly on the textbook content or verified external sources.
 
 
-   ## Special Instructions
+        ## Special Instructions
 
 
-   - Always use `get_textbook_context` first for any academic query. 
-   - If textbook information is insufficient but the question is within scope, use `fetch` to gather trusted external content and cite it. 
-   - If a question is outside the scope of the course, respond politely: 
-   _"I'm designed to help with topics from the course only; this question appears to be outside that scope."_ 
+        - Always use `get_textbook_context` first for any academic query. 
+        - If textbook information is insufficient but the question is within scope, use `fetch` to gather trusted external content and cite it. 
+        - If a question is outside the scope of the course, respond politely: 
+        _"I'm designed to help with topics from the course only; this question appears to be outside that scope."_ 
 
 
-   Your goal is to help students understand the material, develop confidence, and succeed — using only the resources provided in the course and reliable academic sources when needed.
-   """
- 
-   async def chat_completions(request: ChatRequest, x_chat_id: Optional[str] = Header(None, alias="X-Chat-ID"), current_user: dict = Depends(get_current_user)):
-       inputs = convert_to_langchain_messages(request.messages)
-       # Check and update request count
-       db = MongoDB.get_db()
-       user = db.users.find_one({"_id": ObjectId(current_user.id)})
-      
-       if user["requests_used"] >= user["requests_limit"]:
-           raise HTTPException(
-               status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-               detail="Request limit exceeded"
-           )
-          
-       # Increment request count
-       db.users.update_one(
-           {"_id": ObjectId(current_user.id)},
-           {"$inc": {"requests_used": 1}}
-       )
-      
-       inputs = convert_to_langchain_messages(request.messages)
-       system_msg = SystemMessage(content=SYSTEM_MESSAGE)
-       all_messages = [system_msg] + inputs
+        Your goal is to help students understand the material, develop confidence, and succeed — using only the resources provided in the course and reliable academic sources when needed.
+        """
 
+    @app.get(f"{path}/history")
+    async def get_chat_history(x_chat_id: Optional[str] = Header(None, alias="X-Chat-ID"), current_user: dict = Depends(get_current_user)):
+        if not x_chat_id:
+            return {"history": []}
 
-       print("inputs")
-       print(inputs)
+        db = MongoDB.get_db()
+        chat_session = db.chat_sessions.find_one(
+            {"chat_id": x_chat_id, "user_id": ObjectId(current_user.id)})
 
+        if chat_session:
+            return {"history": chat_session.get("messages", [])}
+        return {"history": []}
 
-       accumulated_content = ""
-       tool_calls = {} # Initialize an empty string to accumulate message content
-      
-       # Only create trace if user has enabled logging
-       trace = None
-       if current_user.enable_logging:
-           trace = langfuse.trace(
-               user_id = current_user.email,
-               session_id = x_chat_id
-           )
-           trace.update(
-               input = inputs[-1].content[0]['text'],
-           )
+    async def chat_completions(request: ChatRequest, x_chat_id: Optional[str] = Header(None, alias="X-Chat-ID"), current_user: dict = Depends(get_current_user)):
+        db = MongoDB.get_db()
+        user = db.users.find_one({"_id": ObjectId(current_user.id)})
 
+        if user["requests_used"] >= user["requests_limit"]:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Request limit exceeded"
+            )
 
-       async def run(controller: RunController):
-           tool_calls = {}
-           tool_calls_by_idx = {}
-           nonlocal accumulated_content  # Use nonlocal to modify the outer variable
+        db.users.update_one(
+            {"_id": ObjectId(current_user.id)},
+            {"$inc": {"requests_used": 1}}
+        )
 
+        inputs = convert_to_langchain_messages(request.messages)
+        system_msg = SystemMessage(content=SYSTEM_MESSAGE)
 
-           async for msg, metadata in graph.astream(
-               {"messages": all_messages},
-               config ={
-                   "configurable": {
-                       "system": request.system,
-                       "frontend_tools": request.tools,
-                       "metadata": {
-                           "langfuse_session_id": x_chat_id,
-                           "current_user": current_user.email,
-                           "current_id": current_user.id
-                       },
-                   }
-               },
-               stream_mode="messages"
-           ):
-               if isinstance(msg, ToolMessage):
-                   tool_controller = tool_calls.get(msg.tool_call_id)
-                   if tool_controller is None:
-                       # The MCP tool may send a ToolMessage before its call is registered.
-                       # Register a fallback tool call using "MCP" (or an appropriate tool name) as a default.
-                       tool_controller = await controller.add_tool_call("MCP", msg.tool_call_id)
-                       tool_calls[msg.tool_call_id] = tool_controller
-                  
-                   # Accumulate tool message content
-                   tool_controller.set_result(msg.content)
+        # Load chat history
+        chat_session = db.chat_sessions.find_one(
+            {"chat_id": x_chat_id, "user_id": ObjectId(current_user.id)})
+        history_from_db = []
+        if chat_session:
+            history_from_db = chat_session.get("messages", [])
 
+        history_messages = []
+        for msg in history_from_db:
+            if msg['role'] == 'user':
+                history_messages.append(LanguageModelUserMessage(**msg))
+            elif msg['role'] == 'assistant':
+                history_messages.append(LanguageModelAssistantMessage(**msg))
 
-               if isinstance(msg, AIMessageChunk) or isinstance(msg, AIMessage):
-                   if msg.content:
-                       # Accumulate AI message content
-                       accumulated_content += msg.content
-                       controller.append_text(msg.content)
+        history = convert_to_langchain_messages(history_messages)
 
+        all_messages = history + inputs
 
-                   for chunk in msg.tool_call_chunks:
-                       if not chunk["index"] in tool_calls_by_idx:
-                           tool_controller = await controller.add_tool_call(
-                               chunk["name"], chunk["id"]
-                           )
-                           tool_calls_by_idx[chunk["index"]] = tool_controller
-                           tool_calls[chunk["id"]] = tool_controller
-                       else:
-                           tool_controller = tool_calls_by_idx[chunk["index"]]
+        accumulated_content = ""
+        tool_calls = {}
 
+        trace = None
+        if current_user.enable_logging:
+            trace = langfuse.trace(
+                user_id=current_user.email,
+                session_id=x_chat_id
+            )
+            trace.update(
+                input=inputs[-1].content[0]['text'],
+            )
 
-                       tool_controller.append_args_text(chunk["args"])
-          
-           # After processing all message chunks, update the trace with the complete accumulated content
-           if trace is not None:
-               trace.update(
-                   output = accumulated_content
-               )
+        config = {
+            "configurable": {
+                "thread_id": x_chat_id,
+                "system": request.system,
+                "frontend_tools": request.tools,
+                "metadata": {
+                    "langfuse_session_id": x_chat_id,
+                    "current_user": current_user.email,
+                    "current_id": current_user.id
+                },
+            }
+        }
 
+        async def run(controller: RunController):
+            tool_calls = {}
+            tool_calls_by_idx = {}
+            nonlocal accumulated_content
 
-       return DataStreamResponse(create_run(run))
+            async for msg, metadata in graph.astream(
+                {"messages": all_messages},
+                config=config,
+                stream_mode="messages"
+            ):
+                if isinstance(msg, ToolMessage):
+                    tool_controller = tool_calls.get(msg.tool_call_id)
+                    if tool_controller is None:
+                        tool_controller = await controller.add_tool_call("MCP", msg.tool_call_id)
+                        tool_calls[msg.tool_call_id] = tool_controller
 
+                    tool_controller.set_result(msg.content)
 
-   app.add_api_route(path, chat_completions, methods=["POST"])
+                if isinstance(msg, AIMessageChunk) or isinstance(msg, AIMessage):
+                    if msg.content:
+                        accumulated_content += msg.content
+                        controller.append_text(msg.content)
+
+                    for chunk in msg.tool_call_chunks:
+                        if not chunk["index"] in tool_calls_by_idx:
+                            tool_controller = await controller.add_tool_call(
+                                chunk["name"], chunk["id"]
+                            )
+                            tool_calls_by_idx[chunk["index"]] = tool_controller
+                            tool_calls[chunk["id"]] = tool_controller
+                        else:
+                            tool_controller = tool_calls_by_idx[chunk["index"]]
+
+                        tool_controller.append_args_text(chunk["args"])
+
+            if x_chat_id:
+                thread_state = graph.get_state(config)
+                final_messages = thread_state.values['messages']
+
+                messages_to_store = []
+                for msg in final_messages[-5:]:
+                    role = ""
+                    content = []
+                    if isinstance(msg, HumanMessage):
+                        role = "user"
+                        for part in msg.content:
+                            if part['type'] == 'text':
+                                content.append(LanguageModelTextPart(
+                                    type='text', text=part['text']).dict())
+                    elif isinstance(msg, AIMessage):
+                        role = "assistant"
+                        if msg.content:
+                            content.append(LanguageModelTextPart(
+                                type='text', text=msg.content).dict())
+                        if msg.tool_calls:
+                            for tc in msg.tool_calls:
+                                content.append(LanguageModelToolCallPart(
+                                    type='tool-call', toolCallId=tc['id'], toolName=tc['name'], args=tc['args']).dict())
+
+                    if role:
+                        messages_to_store.append(
+                            {"role": role, "content": content})
+
+                db.chat_sessions.update_one(
+                    {"chat_id": x_chat_id,
+                     "user_id": ObjectId(current_user.id)},
+                    {"$set": {"messages": messages_to_store}},
+                    upsert=True
+                )
+
+            if trace is not None:
+                trace.update(
+                    output=accumulated_content
+                )
+
+        return DataStreamResponse(create_run(run))
+
+    app.add_api_route(path, chat_completions, methods=["POST"])

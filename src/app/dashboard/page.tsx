@@ -4,13 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MyAssistant } from '@/components/MyAssistant';
 import { jwtDecode } from 'jwt-decode';
-import { getApiUrl } from '@/lib/utils'
+import { getApiUrl } from '@/lib/utils';
 
-// Backend API URL - you can also use an environment variable
+// --- Constants & Types ---
 const API_URL = getApiUrl();
-
-// Token will be refreshed if it expires in less than this many seconds
-const TOKEN_REFRESH_THRESHOLD = 5 * 60; // 5 minutes in seconds
+const TOKEN_REFRESH_THRESHOLD = 5 * 60; // 5 minutes
+const CHAT_ID_STORAGE_KEY = 'active_chat_id'; // LocalStorage key for chat ID
 
 interface JWTPayload {
   exp?: number;
@@ -28,7 +27,11 @@ interface ChatIdResponse {
   active_chat_id: string;
 }
 
-// Token management utilities
+interface ChatHistoryResponse {
+  history: any[];
+}
+
+// --- Token Manager ---
 const TokenManager = {
   getAccessToken: () => localStorage.getItem('token'),
   getRefreshToken: () => localStorage.getItem('refresh_token'),
@@ -39,139 +42,131 @@ const TokenManager = {
   clearTokens: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem(CHAT_ID_STORAGE_KEY);
   },
-  hasValidTokens: () => {
-    return !!(localStorage.getItem('token') && localStorage.getItem('refresh_token'));
-  }
+  hasValidTokens: () => !!(localStorage.getItem('token') && localStorage.getItem('refresh_token')),
 };
 
+// --- Main Dashboard Component ---
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [chatId, setChatId] = useState<string | null>(null);
+  const [initialMessages, setInitialMessages] = useState<any[]>([]);
   const router = useRouter();
 
-  // Function to check if token is close to expiry
+  // --- Helper: Check token expiry ---
   const isTokenExpiringSoon = (token: string): boolean => {
     try {
       const decoded = jwtDecode<JWTPayload>(token);
       if (!decoded.exp) return false;
-      
       const currentTime = Math.floor(Date.now() / 1000);
-      const timeUntilExpiry = decoded.exp - currentTime;
-      console.log('Time until token expiry (seconds):', timeUntilExpiry);
-      
-      return timeUntilExpiry < TOKEN_REFRESH_THRESHOLD;
+      return decoded.exp - currentTime < TOKEN_REFRESH_THRESHOLD;
     } catch (error) {
-      console.error('Error decoding token:', error);
+      console.error("Error decoding token:", error);
       return false;
     }
   };
 
-  // Function to refresh the token using refresh token
+  // --- Helper: Refresh tokens ---
   const refreshTokens = async (): Promise<{ accessToken: string; refreshToken: string }> => {
     const refreshToken = TokenManager.getRefreshToken();
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
+    if (!refreshToken) throw new Error('No refresh token available');
 
-    try {
-      console.log('Attempting to refresh tokens...');
-      const response = await fetch(`${API_URL}/api/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${refreshToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+    const response = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${refreshToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error('Failed to refresh token');
-      }
+    if (!response.ok) throw new Error('Failed to refresh token');
+    const data: TokenResponse = await response.json();
 
-      const data: TokenResponse = await response.json();
-      
-      if (!data.access_token || !data.refresh_token) {
-        throw new Error('Invalid token response from server');
-      }
+    if (!data.access_token || !data.refresh_token) throw new Error('Invalid token response');
+    TokenManager.setTokens(data.access_token, data.refresh_token);
 
-      TokenManager.setTokens(data.access_token, data.refresh_token);
-      console.log('✅ Successfully refreshed tokens');
-      
-      return {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token
-      };
-    } catch (error) {
-      console.error('Error refreshing token:', error);
-      throw error;
-    }
+    return { accessToken: data.access_token, refreshToken: data.refresh_token };
   };
 
-  // Function to set a new chat ID
-  const setNewChatId = async (accessToken: string): Promise<string> => {
+  // --- Helper: Ensure we always have a valid access token ---
+  const getValidToken = async (): Promise<string | null> => {
+    if (!TokenManager.hasValidTokens()) return null;
+    let token = TokenManager.getAccessToken();
+    if (token && isTokenExpiringSoon(token)) {
+      try {
+        const { accessToken } = await refreshTokens();
+        return accessToken;
+      } catch {
+        TokenManager.clearTokens();
+        return null;
+      }
+    }
+    return token;
+  };
+
+  // --- Helper: Get or create chat ID ---
+  const getActiveChatId = async (token: string): Promise<string | null> => {
+    const storedChatId = localStorage.getItem(CHAT_ID_STORAGE_KEY);
+    if (storedChatId) return storedChatId;
+
     try {
       const response = await fetch(`${API_URL}/api/auth/set-chat-id`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to set chat ID');
-      }
-
+      if (!response.ok) throw new Error('API failed to create new chat ID');
       const data: ChatIdResponse = await response.json();
-      setChatId(data.active_chat_id);
+      localStorage.setItem(CHAT_ID_STORAGE_KEY, data.active_chat_id);
       return data.active_chat_id;
     } catch (error) {
-      console.error('Error setting chat ID:', error);
-      throw error;
+      console.error("Error setting chat ID:", error);
+      return null;
     }
   };
 
+  // --- Helper: Fetch chat history ---
+  const fetchChatHistory = async (id: string, token: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/virtual-ta/chat/history`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Chat-ID': id,
+        },
+      });
+      if (response.ok) {
+        const data: ChatHistoryResponse = await response.json();
+        setInitialMessages(data.history || []);
+      } else {
+        // if chat history fetch fails, reset chatId
+        localStorage.removeItem(CHAT_ID_STORAGE_KEY);
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error fetching chat history:', error);
+    }
+  };
+
+  // --- Main initialization effect ---
   useEffect(() => {
-    // Authentication check with token refresh and chat ID setup
-    const verifyAndRefreshToken = async () => {
+    const initialize = async () => {
       try {
-        if (!TokenManager.hasValidTokens()) {
+        const token = await getValidToken();
+        if (!token) {
           router.push('/');
           return;
         }
 
-        const token = TokenManager.getAccessToken();
-        let currentAccessToken = token;
-        
-        // Check if token is about to expire
-        if (token && isTokenExpiringSoon(token)) {
-          try {
-            const { accessToken } = await refreshTokens();
-            currentAccessToken = accessToken;
-            // Use new access token for verification
-            const response = await fetch(`${API_URL}/api/auth/me`, {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`
-              }
-            });
-
-            if (!response.ok) {
-              TokenManager.clearTokens();
-              router.push('/');
-              return;
-            }
-          } catch (refreshError) {
-            TokenManager.clearTokens();
-            router.push('/');
-            return;
-          }
+        const activeChatId = await getActiveChatId(token);
+        if (!activeChatId) {
+          setLoading(false);
+          return;
         }
 
-        // Set new chat ID after successful authentication
-        if (currentAccessToken) {
-          await setNewChatId(currentAccessToken);
-        }
-      } catch (error) {
-        console.error('Error verifying authentication:', error);
+        setChatId(activeChatId);
+        await fetchChatHistory(activeChatId, token);
+      } catch (err) {
+        console.error("Error initializing dashboard:", err);
         TokenManager.clearTokens();
         router.push('/');
       } finally {
@@ -179,9 +174,9 @@ export default function Dashboard() {
       }
     };
 
-    verifyAndRefreshToken();
-    
-    // Set up periodic token refresh check
+    initialize();
+
+    // periodic background refresh check
     const refreshInterval = setInterval(() => {
       const token = TokenManager.getAccessToken();
       if (token && isTokenExpiringSoon(token)) {
@@ -190,11 +185,12 @@ export default function Dashboard() {
           router.push('/');
         });
       }
-    }, 60000); // Check every minute
-    
+    }, 60000);
+
     return () => clearInterval(refreshInterval);
   }, [router]);
 
+  // --- Loading spinner ---
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -203,10 +199,11 @@ export default function Dashboard() {
     );
   }
 
+  // --- Render assistant ---
   return (
     <main className="flex flex-col h-[calc(100vh-64px)]">
       <div className="flex-1">
-        <MyAssistant chatId={chatId} />
+        <MyAssistant chatId={chatId} initialMessages={initialMessages} />
       </div>
     </main>
   );

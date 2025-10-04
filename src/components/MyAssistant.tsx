@@ -29,9 +29,10 @@ import { Button } from "@/components/ui/button";
 
 interface MyAssistantProps {
   chatId: string | null;
+  initialMessages?: any[];
 }
 
-export function MyAssistant({ chatId }: MyAssistantProps) {
+export function MyAssistant({ chatId, initialMessages }: MyAssistantProps) {
   const [rateLimitDialogOpen, setRateLimitDialogOpen] = useState(false);
   const token = localStorage.getItem('token');
   const API_URL = getApiUrl()
@@ -39,6 +40,7 @@ export function MyAssistant({ chatId }: MyAssistantProps) {
 
   const runtime = useChatRuntime({
     api: `${API_URL}/api/virtual-ta/chat`,
+    initialMessages: initialMessages,
     headers: {
       'X-Chat-ID': chatId || '',
       'Authorization': `Bearer ${token}`
