@@ -274,25 +274,26 @@ def add_langgraph_route(app: FastAPI, graph, path: str, current_user: UserInDB =
         )
 
         inputs = convert_to_langchain_messages(request.messages)
-        system_msg = SystemMessage(content=SYSTEM_MESSAGE)
+        all_messages = inputs
+        # system_msg = SystemMessage(content=SYSTEM_MESSAGE)
 
         # Load chat history
-        chat_session = db.chat_sessions.find_one(
-            {"chat_id": x_chat_id, "user_id": ObjectId(current_user.id)})
-        history_from_db = []
-        if chat_session:
-            history_from_db = chat_session.get("messages", [])
+        # chat_session = db.chat_sessions.find_one(
+        #     {"chat_id": x_chat_id, "user_id": ObjectId(current_user.id)})
+        # history_from_db = []
+        # if chat_session:
+        #     history_from_db = chat_session.get("messages", [])
 
-        history_messages = []
-        for msg in history_from_db:
-            if msg['role'] == 'user':
-                history_messages.append(LanguageModelUserMessage(**msg))
-            elif msg['role'] == 'assistant':
-                history_messages.append(LanguageModelAssistantMessage(**msg))
+        # history_messages = []
+        # for msg in history_from_db:
+        #     if msg['role'] == 'user':
+        #         history_messages.append(LanguageModelUserMessage(**msg))
+        #     elif msg['role'] == 'assistant':
+        #         history_messages.append(LanguageModelAssistantMessage(**msg))
 
-        history = convert_to_langchain_messages(history_messages)
+        # history = convert_to_langchain_messages(history_messages)
 
-        all_messages = history + inputs
+        # all_messages = history + inputs
 
         accumulated_content = ""
         tool_calls = {}
