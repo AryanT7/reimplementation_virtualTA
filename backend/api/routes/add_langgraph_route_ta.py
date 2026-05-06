@@ -19,8 +19,31 @@ from bson import ObjectId
 from langfuse.callback import CallbackHandler
 from langfuse.decorators import observe
 from langfuse import Langfuse
-langfuse = Langfuse()
 
+import os
+
+# -----------------------------------------
+# Langfuse Logging Configuration
+# -----------------------------------------
+# By default, Langfuse is DISABLED for security/privacy reasons.
+# This prevents sending user data (email, prompts, responses)
+# to external logging services unless explicitly enabled.
+#
+# To enable Langfuse:
+# 1. Set LANGFUSE_ENABLED=true in backend/.env
+# 2. Provide LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY
+#
+# Example:
+# LANGFUSE_ENABLED=true
+# LANGFUSE_PUBLIC_KEY=xxx
+# LANGFUSE_SECRET_KEY=xxx
+#
+# -----------------------------------------
+
+LANGFUSE_ENABLED = os.getenv("LANGFUSE_ENABLED", "false").lower() == "true"
+
+# Initialize Langfuse only if explicitly enabled
+langfuse = Langfuse() if LANGFUSE_ENABLED else None
 
 class LanguageModelTextPart(BaseModel):
    type: Literal["text"]
@@ -330,7 +353,7 @@ def add_langgraph_route(app: FastAPI, graph, path: str, current_user: UserInDB =
         tool_calls = {}
 
         trace = None
-        if current_user.enable_logging:
+        if LANGFUSE_ENABLED and current_user.enable_logging:
             trace = langfuse.trace(
                 user_id=current_user.email,
                 session_id=x_chat_id
